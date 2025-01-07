@@ -20,7 +20,14 @@ export default class DiscussionOverview<Attrs> extends Component {
     }
 
     const posts = discussion?.posts();
-    const participantCount = discussion?.attribute('participantCount');
+    const participants = users.filter((user) => {
+      // Check for participation flags (posts, likes, etc.) on the user
+      const hasPosts = discussion?.posts().some((post) => post.user().id === user.id);
+      const hasLikes = posts[0].likes().some((like) => like.userId() === user.id);
+      return hasPosts || hasLikes;
+    })
+
+    const participantCount = participants.length;
     const lastPost = posts ? posts[posts.length - 1] : null;
     const users = Object.keys(discussion.store.data.users).map((key) => discussion.store.data.users[key]);
 
