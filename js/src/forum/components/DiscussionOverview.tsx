@@ -7,10 +7,10 @@ import Tooltip from 'flarum/common/components/Tooltip';
 import avatar from 'flarum/common/helpers/avatar';
 
 export default class DiscussionOverview<Attrs> extends Component {
-  discussion: Discussion | undefined;
+  discussion: Discussion | null = null;
   oninit(vnode: Mithril.Vnode<Attrs, this>): void {
     super.oninit(vnode);
-    this.discussion = this.attrs?.discussion;
+    this.discussion = vnode.attrs.discussion;
   }
   view() {
     const discussion = this.discussion;
@@ -19,36 +19,32 @@ export default class DiscussionOverview<Attrs> extends Component {
       return null;
     }
 
-    const posts = discussion?.posts();
-    const participants = users.filter((user) => {
-      // Check for participation flags (posts, likes, etc.) on the user
-      const hasPosts = discussion?.posts().some((post) => post.user().id === user.id);
-      const hasLikes = posts[0].likes().some((like) => like.userId() === user.id);
-      return hasPosts || hasLikes;
-    })
+    const discussion = this.discussion;
+    const posts = discussion.posts();
+    const lastPost = posts && posts.length > 0 ? posts[posts.length - 1] : null;
 
-    const participantCount = participants.length;
-    const lastPost = posts ? posts[posts.length - 1] : null;
-    const users = Object.keys(discussion.store.data.users).map((key) => discussion.store.data.users[key]);
+    const participants = discussion.participants() || [];
 
     return (
       <>
         <ul className="DiscussionOverview-list">
           <li className="created-at">
             <h4>{app.translator.trans('datlechin-discussion-overview.forum.created')}</h4>
-            <div className="time">{shortTime(discussion?.createdAt())}</div>
+            <div className="time">{shortTime(discussion.createdAt())}</div>
           </li>
           <li className="last-reply">
             <h4>{app.translator.trans('datlechin-discussion-overview.forum.last_reply')}</h4>
-            <Link href={app.route.post(lastPost)}>
-              <div className="time">
-                {avatar(lastPost.user())}
-                {shortTime(discussion?.lastPostedAt())}
-              </div>
-            </Link>
+            {lastPost ? (
+              <Link href={app.route.post(lastPost)}>
+                <div className="time">
+                  {avatar(lastPost.user())}
+                  {shortTime(discussion.lastPostedAt())}
+                </div>
+              </Link>
+            ) : null}
           </li>
           <li className="replies">
-            <span className="number">{discussion?.replyCount()}</span>
+            <span className="number">{discussion.replyCount()}</span>
             <h4>{app.translator.trans('datlechin-discussion-overview.forum.replies')}</h4>
           </li>
           {app.initializers.has('michaelbelgium-discussion-views') ? (
@@ -58,17 +54,18 @@ export default class DiscussionOverview<Attrs> extends Component {
             </li>
           ) : null}
           <li className="users">
-            <span className="number">{participantCount}</span>
+            <span className="number">{participants.length}</span>
             <h4>{app.translator.trans('datlechin-discussion-overview.forum.users')}</h4>
           </li>
           <li className="likes">
-            <span className="number">{posts[0].likes().length}</span>
+            <span
+              className="number">{posts && posts.length > 0 && posts[0].likes() ? posts[0].likes().length : 0}</span>
             <h4>{app.translator.trans('datlechin-discussion-overview.forum.likes')}</h4>
           </li>
           <li className="avatars">
             <div className="user-list">
-              {users.map((user) => (
-                <Tooltip text={user?.attribute('username')}>
+              {participants.map((user) => (
+                <Tooltip key={user.id()} text={user.username()}>
                   <Link href={app.route.user(user)}>{avatar(user)}</Link>
                 </Tooltip>
               ))}
